@@ -12,9 +12,9 @@ app.use(cors());
 app.use(express.json());
 
 const balances = {
-  "0x161c02c2fa3c2adc7156af4e9b1bf6de358768b6": 100,
-  "0x81fb0dd8aa9bf5e6c669aaf3cc1c64827fe8f118": 50,
-  "0xeded9ac35ddf5b1aab3d28c4330a93757cea7d61": 75,
+  "0x1cdb8a6b7efa94649b9b9bdac0e9b6649abdeefb": 100,
+  "0xfefdc9d01c2795bcc490cfb00a18b673fb013e98": 50,
+  "0x961ce5f4083069bd7d5aae5e6363047051c3c317": 75,
 };
 
 app.get("/balance/:address", (req, res) => {
@@ -23,16 +23,12 @@ app.get("/balance/:address", (req, res) => {
   res.send({ balance });
 });
 
-app.post("/send", (req, res) => {
-  const { sign, sender, recipient, amount } = req.body;
-	const msgHash = keccak256(utf8ToBytes(amount));
-	const signature = sign
-	const recovery = sign[1];
-
-	console.log(sign);
-	const recoverPublicKey = secp.recoverPublicKey(msgHash,signature, recovery);
-
-	console.log(recoverPublicKey);
+app.post("/send", async (req, res) => {
+  const { privateKey, recipient, amount } = req.body;
+  const msgHash = keccak256(utf8ToBytes(`sent ${amount} to ${recipient}`))
+  const sign = await secp.sign(msgHash, privateKey, { recovered: true });
+  const recoveryBit = secp.recoverPublicKey(msgHash, sign[0], sign[1])
+  const sender = `0x${toHex(recoveryBit.slice(1).slice(44, 64))}`
   setInitialBalance(sender);
   setInitialBalance(recipient);
 
@@ -41,7 +37,7 @@ app.post("/send", (req, res) => {
   } else {
     balances[sender] -= amount;
     balances[recipient] += amount;[]
-    res.send({ balance: balances[sender] });
+    res.send({ recoveryBit: sign[1], balance: balances[sender] });
   }
 });
 
