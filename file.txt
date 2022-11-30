@@ -1,3 +1,0 @@
-Client side:
-- Sign the messagesign(transaction, privateKey)
-- send to the server
