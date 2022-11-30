@@ -12,9 +12,9 @@ app.use(cors());
 app.use(express.json());
 
 const balances = {
-  "0x1cdb8a6b7efa94649b9b9bdac0e9b6649abdeefb": 100,
-  "0xfefdc9d01c2795bcc490cfb00a18b673fb013e98": 50,
-  "0x961ce5f4083069bd7d5aae5e6363047051c3c317": 75,
+  "0x5a6309b0be2095215f1b577b26855ec20ce1968e": 100,
+  "0x7d95dac1b55ed29eeeb5f098a348583470a3ae3f": 50,
+  "0x4d209a1b6e4e9537ac4a35bc563f61be5d3d1fc4": 75,
 };
 
 app.get("/balance/:address", (req, res) => {
@@ -24,11 +24,17 @@ app.get("/balance/:address", (req, res) => {
 });
 
 app.post("/send", async (req, res) => {
-  const { privateKey, recipient, amount } = req.body;
-  const msgHash = keccak256(utf8ToBytes(`sent ${amount} to ${recipient}`))
-  const sign = await secp.sign(msgHash, privateKey, { recovered: true });
-  const recoveryBit = secp.recoverPublicKey(msgHash, sign[0], sign[1])
-  const sender = `0x${toHex(recoveryBit.slice(1).slice(44, 64))}`
+  const { signClient, recipient, amount } = req.body;
+  signatureArray = [];
+  Object.keys(signClient[0]).forEach(function(key, index) {
+    signatureArray.push(signClient[0][index]);
+  });
+  const recoveryBit = signClient[1];
+  signatureUint8Array = new Uint8Array(signatureArray);
+  const msgHash = keccak256(utf8ToBytes(`sent ${amount} to ${recipient}`));
+
+  const recoverPublicKey = secp.recoverPublicKey(msgHash, signatureUint8Array, recoveryBit)
+  const sender = `0x${toHex(recoverPublicKey.slice(1).slice(44, 64))}`
   setInitialBalance(sender);
   setInitialBalance(recipient);
 
@@ -37,7 +43,7 @@ app.post("/send", async (req, res) => {
   } else {
     balances[sender] -= amount;
     balances[recipient] += amount;[]
-    res.send({ recoveryBit: sign[1], balance: balances[sender] });
+    res.send({ recoveryBit: recoveryBit, balance: balances[sender] });
   }
 });
 

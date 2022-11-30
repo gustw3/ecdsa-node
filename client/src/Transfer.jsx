@@ -11,16 +11,17 @@ function Transfer({ privateKey, address, setBalance }) {
 	const [recoveryBit, setRecoveryBit] = useState("")
   const setValue = (setter) => (evt) => setter(evt.target.value);
 
-
   async function transfer(evt) {
 
     evt.preventDefault();
+
+    const signClient = await secp.sign(msgHash, privateKey, { recovered: true });
 
     try {
       const {
         data: { recoveryBit, balance },
       } = await server.post(`send`, {
-        privateKey: privateKey,
+        signClient: signClient,
         amount: parseInt(sendAmount),
         recipient,
       });
